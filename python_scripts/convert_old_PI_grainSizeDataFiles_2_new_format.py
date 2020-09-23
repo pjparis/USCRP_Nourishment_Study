@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Sep 21 17:38:51 2020
+Name: convert_old_PI_grainSizeDataFiles_2_new_format.py
+
+Purpose: converts the old data/column formatting for te Pea Island Breach
+Monitoring Project data to the new, 2020 format [standard] specification.
+
+Created on: Mon Sep 21 17:38:51 2020
+Initial coding completed on: Wednesday, Sep 23 11:28:XX 2020
 
 @author: paulp
+
+File Header String: sheet_code	transect_ID	sample_ID	DISH WT (g)	WET WT (g)
+DISH+DRY WT (g)	DRY WT (g) (-2.00Φ)+(-1.00Φ)	-2.00Φ	-1.00Φ	-0.50Φ	0Φ
+0.5Φ	1.00Φ	1.25Φ	1.50Φ	1.75Φ 2.00Φ	2.50Φ	3.00Φ	3.50Φ	PAN
+
+Header applies to both the xlsx and csv formats
 """
 
 # =============================================================================
-# converts the old data/column formatting for te Pea Island Breach Monitoring 
-# Project data to compile with new, 2020 format specifications. 
-
-# sheet_code	transect_ID	sample_ID	DISH WT (g)	WET WT (g)	DISH+DRY WT (g)	DRY WT (g)	
-# 
-# (-2.00Φ)+(-1.00Φ)	-2.00Φ	-1.00Φ	-0.50Φ	0Φ	0.5Φ	1.00Φ	1.25Φ	1.50Φ	1.75Φ	
-# 
-# 2.00Φ	2.50Φ	3.00Φ	3.50Φ	PAN
-
-#			DRY WT (g)	
-
-# (-2.00Φ)+(-1.00Φ)	-2.00Φ	
 # 
 # =============================================================================
 
@@ -44,8 +44,16 @@ for file_name in file_names:
     
     # build the data frame using the data from the current file:
     df = pd.read_csv(file_path+file_name)
+
     
-    survey_date = df['sample_date'][0]    # extract survey date for ss name
+    # extract survey date for ss name
+    survey_date = df['sample_date'][0]
+    month, day, year = survey_date.split('/')
+    if(len(month) == 1):
+        month = str(0)+month
+    if(len(day) == 1):
+        day = str(0)+day
+        
     
     # replace NaNs in df with 0s:
     df.replace({np.nan: 0.0}, inplace=True)
@@ -104,9 +112,22 @@ for file_name in file_names:
         df_impt = df.loc[df['transect_ID'].str[0] == 'T']
     
         # write the data to the spreadsheet:
-        with pd.ExcelWriter(file_path+name+'.xlsx') as writer:
-            df_cntl.to_excel(writer, sheet_name='GrainSize_Control')
-            df_impt.to_excel(writer, sheet_name='GrainSize_Treatment')
+        ss_name = file_path+'PINWR_20'+year+'_'+month+day+'_GrainSizeWts.xlsx'
+        
+        with pd.ExcelWriter(ss_name) as writer:
+            df_cntl.to_excel(writer, sheet_name='GrainSize_Control', 
+                             index=False, float_format='%.2f')
+            df_impt.to_excel(writer, sheet_name='GrainSize_Treatment', 
+                             index=False, float_format='%.2f')
     
     except Exception as e:
         print('Oops!, Trying to write resultant data to Excel SSheets...', e)
+        
+        
+    # create a new comma separated values (.csv) file for secondary storage
+    # of data in new 2020 format
+    try:
+        csv_name = file_path+'PINWR_20'+year+'_'+month+day+'_GrainSizeWts.csv'
+        df.to_csv(csv_name, index=False, float_format='%.2f')
+    except Exception as e:
+        print('Oops! Trying to write data to csv file.', e)
